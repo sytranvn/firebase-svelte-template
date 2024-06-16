@@ -13,7 +13,7 @@
             style="border-top-left-radius: .5rem; border-bottom-left-radius: .5rem;"
           >
             <img
-              src={$authStore.user?.photoURL}
+              src={$authStore.user?.photoURL || '/blank-profile-picture.webp'}
               alt="Avatar"
               class="img-fluid my-5"
               style="width: 80px;"
