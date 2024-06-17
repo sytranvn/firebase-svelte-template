@@ -1,7 +1,6 @@
-import { object, string, boolean, } from 'yup';
+import { object, string } from 'yup';
 import { validatePassword, getAuth } from 'firebase/auth';
 import { FirebaseError, getApp } from 'firebase/app';
-import { browser } from '$app/environment';
 
 const schema = object({
   displayName: string().label("You Name")
@@ -34,26 +33,26 @@ const schema = object({
             passwordFeedback = `Password must have at least ${passwordStatus.passwordPolicy.customStrengthOptions.minPasswordLength} characters`;
           if (passwordStatus.meetsMaxPasswordLength === false)
             passwordFeedback = `Password must not have more than ${passwordStatus.passwordPolicy.customStrengthOptions.maxPasswordLength} characters`;
-          return this.createError({ message: passwordFeedback})
+          return this.createError({ message: passwordFeedback })
         } else {
           return true;
         }
       } catch {
         return true;
       }
-    })/** @type {any} */ ,
+    })/** @type {any} */,
 
-  confirmPassword: string().test('passwords-match', 'Passwords must match', function(value,) { 
+  confirmPassword: string().test('passwords-match', 'Passwords must match', function(value,) {
     return value === this.parent.password
   }),
-  aggreed: string().oneOf([ "true" ]) 
+  aggreed: string().oneOf(["true"])
 })
 /**
  * @param {object} data 
  */
 export default async function validateForm(data) {
   try {
-  await schema.validate(data, { abortEarly: false });
+    await schema.validate(data, { abortEarly: false });
   } catch (/** @type {any} */ err) {
     if (err instanceof FirebaseError) return;
     /** @type {Record<string ,string[]>} */
