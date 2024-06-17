@@ -31,6 +31,6 @@
 		"@fortawesome/svelte-fontawesome": "^0.2.2",
 		"@sveltestrap/sveltestrap": "^6.2.7",
 		"firebase": "^10.12.2",
-		"joi": "^17.13.1"
+		"yup": "^1.4.0"
 	}
 }

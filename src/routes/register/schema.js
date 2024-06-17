@@ -1,18 +1,19 @@
-import Joi from 'joi';
+import { object, string, boolean, } from 'yup';
 import { validatePassword, getAuth } from 'firebase/auth';
-import { getApp } from 'firebase/app';
+import { FirebaseError, getApp } from 'firebase/app';
+import { browser } from '$app/environment';
 
-const schema = Joi.object({
-  displayName: Joi.string().label("You Name")
+const schema = object({
+  displayName: string().label("You Name")
     .min(3)
     .max(50)
     .required(),
-  email: Joi.string().label("Email")
-    .email({ tlds: { allow: false } })
+  email: string().label("Email")
+    .email()
     .required(),
-  password: Joi.string().label("Password")
+  password: string().label("Password")
     .required()
-    .custom(async (value, helper) => {
+    .test(async function(value) {
       const auth = getAuth(getApp())
       try {
         const passwordStatus = await validatePassword(auth, value)
@@ -33,25 +34,33 @@ const schema = Joi.object({
             passwordFeedback = `Password must have at least ${passwordStatus.passwordPolicy.customStrengthOptions.minPasswordLength} characters`;
           if (passwordStatus.meetsMaxPasswordLength === false)
             passwordFeedback = `Password must not have more than ${passwordStatus.passwordPolicy.customStrengthOptions.maxPasswordLength} characters`;
-          return helper.message({ any:  passwordFeedback  })
+          return this.createError({ message: passwordFeedback})
         } else {
           return true;
         }
       } catch {
         return true;
       }
-    }),
+    })/** @type {any} */ ,
 
-  aggreed: Joi.boolean().custom((value, helper) => { 
-    if (value) return true;
-    return helper.message({ 'any.only': 'Please aggree to term of service' }) 
-  })
-
+  confirmPassword: string().test('passwords-match', 'Passwords must match', function(value,) { 
+    return value === this.parent.password
+  }),
+  aggreed: string().oneOf([ "true" ]) 
 })
 /**
  * @param {object} data 
  */
-export default function validateForm(data) {
-  const { error } = schema.validate(data, { abortEarly: false });
-  return error;
+export default async function validateForm(data) {
+  try {
+  await schema.validate(data, { abortEarly: false });
+  } catch (/** @type {any} */ err) {
+    if (err instanceof FirebaseError) return;
+    /** @type {Record<string ,string[]>} */
+    const errors = {}
+    err.inner.forEach(/** @param {any} i */(i) => {
+      errors[i.path] = i.errors
+    })
+    return errors
+  }
 }

@@ -9,7 +9,6 @@
     Container,
     Form,
     FormGroup,
-    Icon,
     Input,
     InputGroup,
     InputGroupText,
@@ -19,30 +18,32 @@
     getAuth,
     GoogleAuthProvider,
     signInWithPopup,
-    validatePassword,
     createUserWithEmailAndPassword
   } from 'firebase/auth';
   import { GithubAuthProvider, TwitterAuthProvider, updateProfile } from 'firebase/auth';
   import authStore from '../../stores/authStore';
   import { goto } from '$app/navigation';
   import { onDestroy } from 'svelte';
-  import { getApp } from '@firebase/app';
   import validateForm from './schema';
 
+  let submitting = false;
   let displayName = '';
   let message = '';
   let email = '';
   let password = '';
   let confirmPassword = '';
   let aggreed = false;
+  /** @type {any} */
+  let error = undefined;
 
-  $: error = validateForm({
+  $: validateForm({
     email,
     displayName,
     password,
     aggreed,
-  });
-  $: console.log(error.details)
+    confirmPassword
+  }).then((err) => (error = err));
+
   async function loginWithGoogle() {
     try {
       const auth = getAuth();
@@ -83,17 +84,23 @@
   }
 
   async function register() {
+    submitting = true;
     if (!aggreed) return;
     try {
       const auth = getAuth();
       await createUserWithEmailAndPassword(auth, email, password);
+      if (auth.currentUser) {
+      }
+      // @ts-ignore
       await updateProfile(auth.currentUser, {
         displayName: displayName,
-        photoURL: "/blank-profile-picture.webp"
-      })
+        photoURL: '/blank-profile-picture.webp'
+      });
     } catch (e) {
       message = 'Something went wrong. Please retry after a minute or try other methods.';
       console.log(e);
+    } finally {
+      submitting = false;
     }
   }
 
@@ -132,9 +139,8 @@
                       label="Your Name"
                       placeholder="Your Name"
                       required
-                      invalid={!!error?.details.find((d) => d?.context.key === 'displayName')}
-                      feedback={error?.details.find((d) => d?.context.key === 'displayName')
-                        ?.message}
+                      invalid={!!error?.displayName}
+                      feedback={error?.displayName}
                     />
                   </InputGroup>
                 </FormGroup>
@@ -149,8 +155,8 @@
                       label="Your Email"
                       placeholder="Your Email"
                       required
-                      invalid={!!error?.details.find((d) => d?.context.key === 'email')}
-                      feedback={error?.details.find((d) => d?.context.key === 'email')?.message}
+                      invalid={!!error?.email}
+                      feedback={error?.email}
                     />
                   </InputGroup>
                 </FormGroup>
@@ -165,8 +171,8 @@
                       label="Password"
                       placeholder="Password"
                       required
-                      invalid={!!error?.details.find((d) => d?.context.key === 'password')}
-                      feedback={error?.details.find((d) => d?.context.key === 'password')?.message}
+                      invalid={!!error?.password}
+                      feedback={error?.password}
                     />
                   </InputGroup>
                 </FormGroup>
@@ -182,17 +188,17 @@
                       label="Repeat your password"
                       required
                       placeholder="Repeat your password"
-                      invalid={confirmPassword !== password}
-                      feedback="Passwords are not match"
+                      invalid={!!error?.confirmPassword}
+                      feedback={error?.confirmPassword}
                     />
                   </InputGroup>
                 </FormGroup>
 
                 <FormGroup>
                   <input
-                    bind:value={aggreed}
                     class="form-check-input me-2"
                     required
+                    bind:checked={aggreed}
                     type="checkbox"
                     id="form2Example3c"
                   />
@@ -204,7 +210,7 @@
                 <div class="d-flex justify-content-center mx-4 mb-3 mb-lg-4">
                   <button
                     type="button"
-                    disabled={password !== confirmPassword || !!error}
+                    disabled={!!error || submitting}
                     data-mdb-button-init
                     on:click={register}
                     data-mdb-ripple-init
